@@ -1,7 +1,7 @@
 abstract class SmartDevice (
-    val name:String,
-    val room: String,
-    var isConnected:Boolean
+   open val name:String,
+    open val room: String,
+    open var isConnected:Boolean
 ) {
    open val logs: List<String> = listOf("System Boot")
     abstract fun performAction()
@@ -17,20 +17,21 @@ interface Adjustable {
     fun setTemperature(temp : Double)
 }
 
-class SmartLight(name:String,
-                 room:String,
-                 isConnected: Boolean,
-                 private var brightness:Int,)
-    :SmartDevice( name, room ,isConnected)
-    , Dimmable{
+data class SmartLight(
+   override val name: String,      // No val! Just a parameter to pass up
+    override val room: String,      // No val!
+    override var isConnected: Boolean, // No var!
+    val brightness: Int // Keep val! This belongs to SmartLight only
+) : SmartDevice(name, room, isConnected), Dimmable {
 
     override val logs = listOf<String>("Dimming","Full Light")
 
     override fun performAction() {
-        println("The light $name is shinning at $brightness")
+        println("Light $name is at $brightness%")
     }
+    
     override fun adjustBrightness(level: Int) {
-        brightness = level.coerceIn(0,100)
+
     }
 
 
@@ -39,9 +40,10 @@ class SmartLight(name:String,
     }
 }
 
-class SmartTermostat(name:String,
-                     room:String,
-                     isConnected: Boolean,
+data class SmartTermostat(
+    override val name:String,
+    override val room:String,
+    override var isConnected: Boolean,
                      var currentTemp: Double)
     : SmartDevice(name, room,isConnected),
     Adjustable{
@@ -55,9 +57,10 @@ class SmartTermostat(name:String,
     }
 }
 
-class SecurityCamera(name:String,
-                     room:String,
-                     isConnected: Boolean,
+data class SecurityCamera(
+    override val name:String,
+    override val room:String,
+    override var isConnected: Boolean,
                      var isMotionDetected:Boolean)
     : SmartDevice(name, room,isConnected), Recordable {
     override val logs = listOf<String>("Motion Sensor Initialized", "Lens Clean")
@@ -189,6 +192,59 @@ fun main() {
     val xx = smartDevices.filterIsInstance<SmartTermostat>()
         .groupBy { room -> room.room }
         .map { device -> device.value.maxOf { it.currentTemp } }
+
+
+    /**
+     * Group all your devices by room, but then transform the results to
+     * show how many connected vs. disconnected devices are in each room
+     */
+
+    val report = smartDevices.groupBy { room -> room.room }
+        .mapValues { entry ->
+            val (on, off) = entry.value.partition { it.isConnected }
+            "Online: ${on.size}, Offline: ${off.size}"
+        }
+    report.forEach { string, string1 ->
+        println("key: $string  value : $string1")
+    }
+
+    println()
+    println()
+    println()
+    
+    /**
+     * Changed to data classses and i will try new functions
+     */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
 
 
