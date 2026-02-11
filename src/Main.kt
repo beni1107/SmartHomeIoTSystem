@@ -165,14 +165,30 @@ fun main() {
     }
 
     /**
-     * We need to find out if the lights are on in an empty room.
-     * Goal: Create a list of names for SmartLights that have a brightness greater than 0,
-     * but only if they are in a room where a SecurityCamera reports isMotionDetected == false.
+     *Calculate the average temperature of all SmartTermostat devices located in the "Attic" that are currently isConnected
      */
-    val motionLights = smartDevices.filterIsInstance<SmartLight>()
-        .filter { light -> light.getBrightness() > 0 &&
-        smartDevices.filterIsInstance<SecurityCamera>().any { camera -> camera.isMotionDetected == false }}
 
+    val avgTempAttic = smartDevices.filterIsInstance<SmartTermostat>()
+        .filter { room -> room.room == "Attic" }
+        .filter { connection -> connection.isConnected }
+        .map { temperature -> temperature.currentTemp }.average()
+
+    println("the average temp for connected smarttemostats is : $avgTempAttic")
+
+    println()
+    println()
+
+    /*
+     * Goal: Get a single list of unique log messages from every device
+     *  in the house, but I want the final list to be sorted alphabetically.
+     */
+    val sortedLogs = smartDevices.flatMap { device -> device.logs }.distinct().sorted()
+    println("Sorted log messages from devices are : $sortedLogs")
+    sortedLogs.forEach { log -> println(log) }
+
+    val xx = smartDevices.filterIsInstance<SmartTermostat>()
+        .groupBy { room -> room.room }
+        .map { device -> device.value.maxOf { it.currentTemp } }
 }
 
 
