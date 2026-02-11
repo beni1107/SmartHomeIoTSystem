@@ -1,7 +1,9 @@
 abstract class SmartDevice (
     val name:String,
-    val isConnected:Boolean
+    val room: String,
+    var isConnected:Boolean
 ) {
+   open val logs: List<String> = listOf("System Boot")
     abstract fun performAction()
 }
 
@@ -16,10 +18,13 @@ interface Adjustable {
 }
 
 class SmartLight(name:String,
+                 room:String,
                  isConnected: Boolean,
                  private var brightness:Int,)
-    :SmartDevice(name, isConnected)
+    :SmartDevice( name, room ,isConnected)
     , Dimmable{
+
+    override val logs = listOf<String>("Dimming","Full Light")
 
     override fun performAction() {
         println("The light $name is shinning at $brightness")
@@ -35,11 +40,13 @@ class SmartLight(name:String,
 }
 
 class SmartTermostat(name:String,
+                     room:String,
                      isConnected: Boolean,
                      var currentTemp: Double)
-    : SmartDevice(name, isConnected),
+    : SmartDevice(name, room,isConnected),
     Adjustable{
 
+    override val logs = listOf<String>("Starting..","Temperature check")
     override fun setTemperature(temp: Double) {
         currentTemp = temp
     }
@@ -49,9 +56,11 @@ class SmartTermostat(name:String,
 }
 
 class SecurityCamera(name:String,
+                     room:String,
                      isConnected: Boolean,
                      var isMotionDetected:Boolean)
-    : SmartDevice(name, isConnected), Recordable {
+    : SmartDevice(name, room,isConnected), Recordable {
+    override val logs = listOf<String>("Motion Sensor Initialized", "Lens Clean")
     override fun startRecording() {
 
     }
@@ -62,15 +71,20 @@ class SecurityCamera(name:String,
 
 fun main() {
     val smartDevices: List<SmartDevice> = listOf(
-        SmartLight("Bathroom", isConnected = true, brightness = 45),
-        SecurityCamera("Front Door", isConnected = true, isMotionDetected = true),
-        SmartTermostat(name = "Attic", isConnected = true, currentTemp = 23.0),
-        SecurityCamera("Garage", isConnected = true, isMotionDetected = false),
-        SmartTermostat(name = "Basement", isConnected = true, currentTemp = 17.0),
-        SmartLight("Bedroom", isConnected = true, brightness = 0),
-        SecurityCamera("Backyard", isConnected = true, isMotionDetected = true),
-        SmartTermostat(name = "Living Room", isConnected = true, currentTemp = 21.0),
-        SmartLight("Kitchen", isConnected = true, brightness = 70),
+        SmartLight("Bathroom Light",room ="Bathroom", isConnected = true, brightness = 45),
+        SmartLight("Attic Light", room = "Attic",isConnected = false, brightness = 45),
+        SecurityCamera("Front Camera", room="Front",isConnected = true, isMotionDetected = true),
+        SecurityCamera("Attic Camera", room="Attic",isConnected = true, isMotionDetected = false),
+        SmartTermostat(name = "Attic Termostat",room="Attic", isConnected = true, currentTemp = 23.0),
+        SmartTermostat(name = "Front Door Termostat",room="Front Door", isConnected = true, currentTemp = 15.0),
+        SecurityCamera("Garage Camera",room="Garage", isConnected = true, isMotionDetected = false),
+        SmartTermostat(name = "Basement Termostat",room="Basement", isConnected = true, currentTemp = 17.0),
+        SmartTermostat(name = "Bedroom Termostat",room="Bedroom", isConnected = true, currentTemp = 17.0),
+        SmartLight("Bedroom Light", room="Bedroom",isConnected = true, brightness = 0),
+        SecurityCamera("Backyard Camera",room="Backyard", isConnected = true, isMotionDetected = true),
+        SmartTermostat(name = "Living Room Termostat",room="Living Room", isConnected = true, currentTemp = 21.0),
+        SmartTermostat(name = "Kitchen Termostat",room="Kitchen", isConnected = true, currentTemp = 21.0),
+        SmartLight("Kitchen Light",room="Kitchen", isConnected = false, brightness = 70),
     )
 
     /**
@@ -92,12 +106,73 @@ fun main() {
      * Imagine you manually change the "Backyard" camera to isConnected = false.
      * You want to print a list of names for everything that is down.
      */
-    /*smartDevices.filterIsInstance<SecurityCamera>()
+    smartDevices.filterIsInstance<SecurityCamera>()
         .find { device -> device.name == "Backyard" }
-        ?.let { device -> device.isConnected =false } ?: " No Backyard camera found"
- */
+        ?.isConnected = false ?: false
+
      val downDevices = smartDevices.filter { device -> !device.isConnected }.map { device -> device.name }
     println("Down devices: $downDevices")
+    println()
+    println()
+    /**
+     * Now that you've added the logs to the abstract class, try to write out the chain that does this:
+     * Filters for only the devices that are isConnected.
+     * Flattens all their logs into one list.
+     * Removes duplicates (so you don't see "System Boot" 9 times).
+     * Saves it to a variable called houseHistory.
+     */
+    val allLogs = smartDevices.flatMap { device -> device.logs }
+    println("All logs: $allLogs")
+    println()
+    val houseHistory = smartDevices.filter { device -> device.isConnected}
+        .flatMap { device -> device.logs}.distinct()
+    println("House history: $houseHistory")
+    println()
+
+    val intruderDected = smartDevices.filterIsInstance<SecurityCamera>().any{device -> device.isMotionDetected}
+    val intruderNames = smartDevices.filterIsInstance<SecurityCamera>()
+        .filter { device -> device.isMotionDetected }
+        .map{device -> device.name}
+
+    smartDevices.filterIsInstance<SecurityCamera>()
+        .find { device -> device.name == "Backyard" }
+        ?.let { device -> device.isConnected=false } ?: "Device not found"
+
+    val check = smartDevices.filterIsInstance<SecurityCamera>()
+        .find { device -> device.name == "Backyard" }?.isConnected ?: "Device not found"
+    println(check)
+    println()
+    println()
+
+    /**
+     * Your house has devices in the Kitchen, Attic, Bedroom, etc.
+     * I want you to create a "Map" where the Key is the name of the room and the Value is the number of devices in that room.
+     */
+
+    val roomDevice = smartDevices.groupBy { device -> device.name }
+    roomDevice.forEach { (room, devices) ->
+        println("Room: $room")
+        devices.forEach { device ->
+            println("  - ${device.name}")
+        }
+    }
+    println()
+    println()
+    val roomDevice2 = smartDevices.groupingBy { device -> device.name }.eachCount()
+    roomDevice2.forEach { (room, status) ->
+        println("Room :$room number of devices: $status")
+
+    }
+
+    /**
+     * We need to find out if the lights are on in an empty room.
+     * Goal: Create a list of names for SmartLights that have a brightness greater than 0,
+     * but only if they are in a room where a SecurityCamera reports isMotionDetected == false.
+     */
+    val motionLights = smartDevices.filterIsInstance<SmartLight>()
+        .filter { light -> light.getBrightness() > 0 &&
+        smartDevices.filterIsInstance<SecurityCamera>().any { camera -> camera.isMotionDetected == false }}
+
 }
 
 
