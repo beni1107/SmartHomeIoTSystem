@@ -35,12 +35,10 @@ data class SmartLight(
     }
 
 
-    fun getBrightness():Int{
-        return brightness
-    }
+    
 }
 
-data class SmartTermostat(
+data class SmartThermostat(
     override val name:String,
     override val room:String,
     override var isConnected: Boolean,
@@ -72,22 +70,32 @@ data class SecurityCamera(
     }
 }
 
+sealed class DeviceResult {
+    data class Success(val device : SmartDevice) : DeviceResult()
+    data class Failure (val message: String) : DeviceResult()
+}
+
+sealed class TempResult {
+    data class Success( val termostat: SmartThermostat)
+    data class Failure (val message: String)
+}
+
 fun main() {
     val smartDevices: List<SmartDevice> = listOf(
-        SmartLight("Bathroom Light",room ="Bathroom", isConnected = true, brightness = 45),
-        SmartLight("Attic Light", room = "Attic",isConnected = false, brightness = 45),
-        SecurityCamera("Front Camera", room="Front",isConnected = true, isMotionDetected = true),
-        SecurityCamera("Attic Camera", room="Attic",isConnected = true, isMotionDetected = false),
-        SmartTermostat(name = "Attic Termostat",room="Attic", isConnected = true, currentTemp = 23.0),
-        SmartTermostat(name = "Front Door Termostat",room="Front Door", isConnected = true, currentTemp = 15.0),
-        SecurityCamera("Garage Camera",room="Garage", isConnected = true, isMotionDetected = false),
-        SmartTermostat(name = "Basement Termostat",room="Basement", isConnected = true, currentTemp = 17.0),
-        SmartTermostat(name = "Bedroom Termostat",room="Bedroom", isConnected = true, currentTemp = 17.0),
-        SmartLight("Bedroom Light", room="Bedroom",isConnected = true, brightness = 0),
-        SecurityCamera("Backyard Camera",room="Backyard", isConnected = true, isMotionDetected = true),
-        SmartTermostat(name = "Living Room Termostat",room="Living Room", isConnected = true, currentTemp = 21.0),
-        SmartTermostat(name = "Kitchen Termostat",room="Kitchen", isConnected = true, currentTemp = 21.0),
-        SmartLight("Kitchen Light",room="Kitchen", isConnected = false, brightness = 70),
+        SmartLight("Bathroom Light", room = "Bathroom", isConnected = true, brightness = 45),
+        SmartLight("Attic Light", room = "Attic", isConnected = false, brightness = 45),
+        SecurityCamera("Front Camera", room = "Front", isConnected = true, isMotionDetected = true),
+        SecurityCamera("Attic Camera", room = "Attic", isConnected = true, isMotionDetected = false),
+        SmartThermostat(name = "Attic Termostat", room = "Attic", isConnected = true, currentTemp = 23.0),
+        SmartThermostat(name = "Front Door Termostat", room = "Front Door", isConnected = true, currentTemp = 15.0),
+        SecurityCamera("Garage Camera", room = "Garage", isConnected = true, isMotionDetected = false),
+        SmartThermostat(name = "Basement Termostat", room = "Basement", isConnected = true, currentTemp = 17.0),
+        SmartThermostat(name = "Bedroom Termostat", room = "Bedroom", isConnected = true, currentTemp = 17.0),
+        SmartLight("Bedroom Light", room = "Bedroom", isConnected = true, brightness = 0),
+        SecurityCamera("Backyard Camera", room = "Backyard", isConnected = true, isMotionDetected = true),
+        SmartThermostat(name = "Living Room Termostat", room = "Living Room", isConnected = true, currentTemp = 21.0),
+        SmartThermostat(name = "Kitchen Termostat", room = "Kitchen", isConnected = true, currentTemp = 21.0),
+        SmartLight("Kitchen Light", room = "Kitchen", isConnected = false, brightness = 70),
     )
 
     /**
@@ -113,7 +121,7 @@ fun main() {
         .find { device -> device.name == "Backyard" }
         ?.isConnected = false ?: false
 
-     val downDevices = smartDevices.filter { device -> !device.isConnected }.map { device -> device.name }
+    val downDevices = smartDevices.filter { device -> !device.isConnected }.map { device -> device.name }
     println("Down devices: $downDevices")
     println()
     println()
@@ -127,19 +135,19 @@ fun main() {
     val allLogs = smartDevices.flatMap { device -> device.logs }
     println("All logs: $allLogs")
     println()
-    val houseHistory = smartDevices.filter { device -> device.isConnected}
-        .flatMap { device -> device.logs}.distinct()
+    val houseHistory = smartDevices.filter { device -> device.isConnected }
+        .flatMap { device -> device.logs }.distinct()
     println("House history: $houseHistory")
     println()
 
-    val intruderDected = smartDevices.filterIsInstance<SecurityCamera>().any{device -> device.isMotionDetected}
+    val intruderDected = smartDevices.filterIsInstance<SecurityCamera>().any { device -> device.isMotionDetected }
     val intruderNames = smartDevices.filterIsInstance<SecurityCamera>()
         .filter { device -> device.isMotionDetected }
-        .map{device -> device.name}
+        .map { device -> device.name }
 
     smartDevices.filterIsInstance<SecurityCamera>()
         .find { device -> device.name == "Backyard" }
-        ?.let { device -> device.isConnected=false } ?: "Device not found"
+        ?.let { device -> device.isConnected = false } ?: "Device not found"
 
     val check = smartDevices.filterIsInstance<SecurityCamera>()
         .find { device -> device.name == "Backyard" }?.isConnected ?: "Device not found"
@@ -171,7 +179,7 @@ fun main() {
      *Calculate the average temperature of all SmartTermostat devices located in the "Attic" that are currently isConnected
      */
 
-    val avgTempAttic = smartDevices.filterIsInstance<SmartTermostat>()
+    val avgTempAttic = smartDevices.filterIsInstance<SmartThermostat>()
         .filter { room -> room.room == "Attic" }
         .filter { connection -> connection.isConnected }
         .map { temperature -> temperature.currentTemp }.average()
@@ -189,7 +197,7 @@ fun main() {
     println("Sorted log messages from devices are : $sortedLogs")
     sortedLogs.forEach { log -> println(log) }
 
-    val xx = smartDevices.filterIsInstance<SmartTermostat>()
+    val xx = smartDevices.filterIsInstance<SmartThermostat>()
         .groupBy { room -> room.room }
         .map { device -> device.value.maxOf { it.currentTemp } }
 
@@ -211,40 +219,80 @@ fun main() {
     println()
     println()
     println()
-    
+
     /**
      * Changed to data classses and i will try new functions
      */
 
+    /**
+     * find Kitchen light and change is conneted to false
+     */
 
 
+    val repairedlight2 = (smartDevices.find { device ->
+        device.room == "Kitchen" && !device.isConnected
+    } as? SmartLight)?.let { it.copy(isConnected = true, brightness = 100) }
 
+    val status = if (repairedlight2 != null) {
+        DeviceResult.Success(repairedlight2)
+    } else {
+        DeviceResult.Failure("Device not found")
+    }
 
+    when (status) {
+        is DeviceResult.Success -> println("Fixed: ${status.device}")
+        is DeviceResult.Failure -> println("Error: ${status.message}")
+    }
+    println()
+    println()
 
+    val x = smartDevices.filterIsInstance<SmartThermostat>().find { device ->
+        device.room == "Attic"
+    }?.let { thermostat -> thermostatCheck(thermostat, 20.0) }
 
+    val camTmp = smartDevices.filterIsInstance<SecurityCamera>()
+        .find { camera -> camera.name == "Front Camera" }?.
+            let { camera -> cameraCheck(camera) }
 
+    when(camTmp) {
+        is DeviceResult.Success -> {
+            val tmp = camTmp.device as SecurityCamera
+            println("Camera name ${tmp.name} Camera connection ${tmp.isConnected}")
+        }
+        is DeviceResult.Failure -> println(camTmp.message)
+         null -> println("To je null")
+    }
 
+}
 
+/**
+ * Goal: Practice copy() and basic sealed class wrapping.
+ * The Scenario: You need to update a SmartThermostat. However, if someone tries to set the temperature above 30°C or below 10°C, it’s considered a "Safety Violation."
+ * The Task:
+ * Create a sealed class TempResult.
+ * Success: Holds the updated thermostat.
+ * Error: Holds a message ("Temperature too high!" or "Too low!").
+ * Create a function or logic block that takes an existing SmartThermostat and a newTemp: Double.
+ * Logic: * If the temp is valid, return a .copy() of the thermostat in the Success box.
+ * If invalid, return the Error box.
+ * Practice: Try to update your "Attic Thermostat" to 35.0°C and handle the result with a when block.
+ */
+fun thermostatCheck(thermostat:SmartThermostat, newTemp: Double): DeviceResult {
 
+    if (newTemp > 30 || newTemp < 10) {
+        return DeviceResult.Failure("Wrong temperature")
+    }else {
+        return DeviceResult.Success(thermostat.copy(currentTemp = newTemp))
+    }
 
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+fun cameraCheck( camera: SecurityCamera, ): DeviceResult {
+    return if(camera.isMotionDetected ) {
+         DeviceResult.Success(camera.copy(isConnected = true))
+    }else  {
+         DeviceResult.Failure("Camera not connected")
+    }
 }
 
 
