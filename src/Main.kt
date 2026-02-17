@@ -35,7 +35,7 @@ data class SmartLight(
     }
 
 
-    
+
 }
 
 data class SmartThermostat(
@@ -262,7 +262,20 @@ fun main() {
         is DeviceResult.Failure -> println(camTmp.message)
          null -> println("To je null")
     }
+    println()
+    println()
+    val termoStatus = smartDevices.filterIsInstance<SmartThermostat>()
+        .find { room -> room.room == "Living Room" }?.let { thermostat -> thermoCehck(thermostat) }
 
+    when( termoStatus) {
+        is DeviceResult.Success -> {
+            val x = termoStatus.device as SmartThermostat
+            println("Thermostat room : ${x.room} current temp : ${x.currentTemp}")
+
+        }
+        is DeviceResult.Failure -> println(termoStatus.message)
+        null -> println("No device found")
+    }
 }
 
 /**
@@ -292,6 +305,15 @@ fun cameraCheck( camera: SecurityCamera, ): DeviceResult {
          DeviceResult.Success(camera.copy(isConnected = true))
     }else  {
          DeviceResult.Failure("Camera not connected")
+    }
+}
+
+fun thermoCehck(thermostat: SmartThermostat) : DeviceResult {
+    return if (thermostat.currentTemp > 30) {
+        DeviceResult.Success(thermostat.copy(currentTemp = 20.0))
+    }else {
+        DeviceResult.Failure("Thermo is ok ")
+
     }
 }
 
