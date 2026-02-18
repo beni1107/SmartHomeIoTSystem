@@ -1,7 +1,10 @@
 abstract class SmartDevice (
-   open val name:String,
+    open val id: Int,
+    open val category:String,
+    open val name:String,
     open val room: String,
-    open var isConnected:Boolean
+    open var isConnected:Boolean,
+    open val powerUsage:Double
 ) {
    open val logs: List<String> = listOf("System Boot")
     abstract fun performAction()
@@ -18,11 +21,14 @@ interface Adjustable {
 }
 
 data class SmartLight(
-   override val name: String,      // No val! Just a parameter to pass up
+   override val id: Int,
+   override val category:String,
+    override val name: String,      // No val! Just a parameter to pass up
     override val room: String,      // No val!
-    override var isConnected: Boolean, // No var!
+    override var isConnected: Boolean,
+    override val powerUsage: Double,// No var!
     val brightness: Int // Keep val! This belongs to SmartLight only
-) : SmartDevice(name, room, isConnected), Dimmable {
+) : SmartDevice(id, category,name, room, isConnected, powerUsage), Dimmable {
 
     override val logs = listOf<String>("Dimming","Full Light")
 
@@ -39,11 +45,14 @@ data class SmartLight(
 }
 
 data class SmartThermostat(
+    override val id: Int,
+    override val category:String,
     override val name:String,
     override val room:String,
     override var isConnected: Boolean,
+    override val powerUsage: Double,
                      var currentTemp: Double)
-    : SmartDevice(name, room,isConnected),
+    : SmartDevice(id, category,name,  room,isConnected, powerUsage),
     Adjustable{
 
     override val logs = listOf<String>("Starting..","Temperature check")
@@ -56,11 +65,14 @@ data class SmartThermostat(
 }
 
 data class SecurityCamera(
+    override val id: Int,
+    override val category:String,
     override val name:String,
     override val room:String,
     override var isConnected: Boolean,
+    override val powerUsage: Double,
                      var isMotionDetected:Boolean)
-    : SmartDevice(name, room,isConnected), Recordable {
+    : SmartDevice(id,category,name, room,isConnected, powerUsage), Recordable {
     override val logs = listOf<String>("Motion Sensor Initialized", "Lens Clean")
     override fun startRecording() {
 
@@ -80,22 +92,36 @@ sealed class TempResult {
     data class Failure (val message: String)
 }
 
+data class  SmartHome(
+    private val devices: List<SmartDevice>
+){
+    private var lastAccessedId: Int? = null
+
+    fun getAndLogDevice(id: Int): SmartDevice? {
+        return devices.find {
+            device -> device.id == id
+        }?.also {
+            device -> lastAccessedId = device.id
+        } ?: run { println("Not found");null }
+    }
+}
 fun main() {
     val smartDevices: List<SmartDevice> = listOf(
-        SmartLight("Bathroom Light", room = "Bathroom", isConnected = true, brightness = 45),
-        SmartLight("Attic Light", room = "Attic", isConnected = false, brightness = 45),
-        SecurityCamera("Front Camera", room = "Front", isConnected = true, isMotionDetected = true),
-        SecurityCamera("Attic Camera", room = "Attic", isConnected = true, isMotionDetected = false),
-        SmartThermostat(name = "Attic Termostat", room = "Attic", isConnected = true, currentTemp = 23.0),
-        SmartThermostat(name = "Front Door Termostat", room = "Front Door", isConnected = true, currentTemp = 15.0),
-        SecurityCamera("Garage Camera", room = "Garage", isConnected = true, isMotionDetected = false),
-        SmartThermostat(name = "Basement Termostat", room = "Basement", isConnected = true, currentTemp = 17.0),
-        SmartThermostat(name = "Bedroom Termostat", room = "Bedroom", isConnected = true, currentTemp = 17.0),
-        SmartLight("Bedroom Light", room = "Bedroom", isConnected = true, brightness = 0),
-        SecurityCamera("Backyard Camera", room = "Backyard", isConnected = true, isMotionDetected = true),
-        SmartThermostat(name = "Living Room Termostat", room = "Living Room", isConnected = true, currentTemp = 21.0),
-        SmartThermostat(name = "Kitchen Termostat", room = "Kitchen", isConnected = true, currentTemp = 21.0),
-        SmartLight("Kitchen Light", room = "Kitchen", isConnected = false, brightness = 70),
+        SmartLight(id=100, category ="Lightning","Bathroom Light", room = "Bathroom", isConnected = true, brightness = 45, powerUsage = 15.0),
+        SmartLight(id=145, category ="Lightning","Attic Light", room = "Attic", isConnected = false, brightness = 45,powerUsage = 20.0),
+        SecurityCamera(id=132, category ="Security","Front Camera", room = "Front", isConnected = true, isMotionDetected = true,powerUsage = 25.0),
+        SecurityCamera(id=162, category ="Security","Attic Camera", room = "Attic", isConnected = true, isMotionDetected = false,powerUsage =5.0 ),
+
+        SmartThermostat(id=143, "Climate", name = "Front Door Termostat", room = "Front Door", isConnected = true, currentTemp = 15.0,powerUsage = 30.0),
+        SmartThermostat(id=173, "Climate", name = "Attic Termostat", room = "Attic", isConnected = false, currentTemp = 15.0,powerUsage = 30.0),
+        SecurityCamera(id=165, category ="Security","Garage Camera", room = "Garage", isConnected = true, isMotionDetected = false,powerUsage = 42.0),
+        SmartThermostat(id= 178, category = "Climate", name = "Basement Termostat", room = "Basement", isConnected = true, currentTemp = 17.0, powerUsage = 32.0),
+        SmartThermostat(id=169, category = "Climate", name = "Bedroom Termostat", room = "Bedroom", isConnected = true, currentTemp = 17.0, powerUsage = 8.0),
+        SmartLight(id= 158,category ="Lightning","Bedroom Light", room = "Bedroom", isConnected = true, brightness = 0, powerUsage = 26.0),
+        SecurityCamera(id=187, category ="Security","Backyard Camera", room = "Backyard", isConnected = true, isMotionDetected = true, powerUsage = 29.0),
+        SmartThermostat(id = 186, category = "Climate", name = "Living Room Termostat", room = "Living Room", isConnected = true, currentTemp = 21.0, powerUsage = 33.0),
+        SmartThermostat(id = 194, category = "Climate", name = "Kitchen Termostat", room = "Kitchen", isConnected = true, currentTemp = 21.0, powerUsage = 51.0),
+        SmartLight(id=172,category ="Lightning","Kitchen Light", room = "Kitchen", isConnected = false, brightness = 70, powerUsage = 42.0),
     )
 
     /**
@@ -276,7 +302,126 @@ fun main() {
         is DeviceResult.Failure -> println(termoStatus.message)
         null -> println("No device found")
     }
+
+    println()
+    println()
+
+    /**
+     *  Transforming  whole list
+     */
+
+    val nightModeDevices = smartDevices.map {
+        device ->
+        when(device) {
+            is SmartLight -> device.copy(isConnected = false)
+            is SmartThermostat -> device.copy(currentTemp = 18.0)
+            is SecurityCamera -> device.copy(isMotionDetected = true)
+            else -> device
+        }
+    }
+
+    nightModeDevices.forEach {
+        device ->
+        when(device) {
+            is SmartLight -> println("Light : ${device.name} is OFF")
+            is SmartThermostat -> println("Thermostat ${device.name} is set to ${device.currentTemp}")
+            is SecurityCamera -> println("camera : ${device.name} is ARMED")
+            else -> println("Unknown device ")
+        }
+    }
+
+    val connectedDevices = smartDevices.filter {
+        device -> device.isConnected == true
+    }
+    println()
+    println("----------NEW PRINT ----------")
+    println()
+    /**
+     *  only secuirty devices and one that are currently connected
+     */
+
+    val secuirtyConnected = smartDevices.filter {
+        device -> device.category == "Security" &&
+            device.isConnected == true
+    }.map {
+        device -> "${device.id} - ${device.name} is active"
+    }
+
+    secuirtyConnected.forEach {
+        device ->
+        println(device)
+    }
+    println()
+    println("----------NEW PRINT ----------")
+    println()
+
+    val vastingLights = smartDevices.filterIsInstance<SmartLight>()
+        .filter { device -> device.powerUsage > 15.0 }.count();
+    println("Power Hogs number : $vastingLights")
+
+    println()
+    println("----------NEW PRINT ----------")
+    println()
+
+    val tenCharPower = smartDevices.filter {
+        device -> device.name.length > 10
+    }.sumOf {
+        device -> device.powerUsage
+    }
+    println("total power use of devices wiht more 10 chars is : $tenCharPower")
+
+    println()
+    println("----------NEW PRINT ----------")
+    println()
+
+    val temp = smartDevices.groupBy {
+        device -> device.category
+    }
+
+    temp.forEach{ (category, devices) ->
+        println("Cateogry name : $category")
+
+        devices.forEach { device ->
+            print("$device  ")
+        }
+        println()
+    }
+
+
+println()
+println("----------NEW PRINT ----------")
+println()
+
+val sortedList = smartDevices.sortedByDescending {
+    device -> device.powerUsage
 }
+    sortedList.forEach {
+        device ->
+        println(" Device name ${device.name} power usage ${device.powerUsage}")
+    }
+println()
+println("----------NEW PRINT ----------")
+println()
+    val unknowIDfind = smartDevices.find {
+        device -> device.id == 99
+    }?.let { device -> println("${device.name}") } ?: "Objcet not found"
+
+
+    val unknownIDfind2 = smartDevices.find{
+        device -> device.id == 99}?.let {
+            device ->
+        println("${device.name}")
+    } ?: SmartLight(id=100, category ="Lightning","Bathroom Light", room = "Bathroom", isConnected = true, brightness = 45, powerUsage = 15.0)
+    }
+
+
+
+
+
+
+
+
+
 
 /**
  * Goal: Practice copy() and basic sealed class wrapping.
