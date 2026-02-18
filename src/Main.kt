@@ -104,6 +104,52 @@ data class  SmartHome(
             device -> lastAccessedId = device.id
         } ?: run { println("Not found");null }
     }
+
+    /**
+     * To reach Level 6, you need to handle potential errors gracefully.
+     * Let's add a function that calculates the average power usage for
+     * a specific category, but handles the case where that category doesn't exist.
+     */
+    fun getAverageUsage(category: String):Double {
+
+       return devices.filter { device -> device.category == category }
+           .map { device -> device.powerUsage }
+           .average().takeIf { !it.isNaN() } ?: 0.0
+    }
+
+    /**
+     * is energy efficient
+     */
+    fun isEnergyefficient(category: String? = null):Boolean {
+        val targetList = if (category == null) {
+            devices
+        } else {
+            devices.filter { it.category == category }
+        }
+        val average = targetList.map { device -> device.powerUsage }.average().takeUnless { it.isNaN() } ?: 0.0
+        return average < 20.0
+
+    }
+
+    fun getDeviceStatus(name:String):String {
+
+        return devices.firstOrNull { device -> device.name == name }?.let {
+            it -> "Device ${it.name} status ${it.isConnected} using ${it.powerUsage} watts" } ?: "Device $name not found"
+    }
+
+    fun getSystemHealth():String {
+        println("Security camera check ")
+        val camcheck = devices.filterIsInstance<SecurityCamera>().all { device -> device.isConnected }
+        val over100 = devices.any { it.powerUsage > 100 }
+
+        return "Security system ${ if (camcheck) "ONLINE" else "OFFLINE"} highpower usage ${ if (over100) "YES" else "NO"}"
+    }
+
+    fun calculateDailyCost(pricePerKwh:Double): Double {
+        return devices.sumOf { device -> device.powerUsage} * pricePerKwh
+    }
+
+
 }
 fun main() {
     val smartDevices: List<SmartDevice> = listOf(
