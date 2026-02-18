@@ -93,7 +93,7 @@ sealed class TempResult {
 }
 
 data class  SmartHome(
-    private val devices: List<SmartDevice>
+    private val devices: MutableList<SmartDevice>
 ){
     private var lastAccessedId: Int? = null
 
@@ -147,6 +147,19 @@ data class  SmartHome(
 
     fun calculateDailyCost(pricePerKwh:Double): Double {
         return devices.sumOf { device -> device.powerUsage} * pricePerKwh
+    }
+
+    fun addDevice (device : SmartDevice?) {
+        if(device != null) {
+            println("adding device..")
+            devices.add(device)
+        }else {
+            println("Device is null, cant be added")
+        }
+    }
+
+    fun isSystemOffline(): Boolean {
+        return devices.none { device -> device.isConnected }
     }
 
 
